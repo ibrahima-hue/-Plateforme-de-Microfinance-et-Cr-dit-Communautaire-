@@ -1,0 +1,61 @@
+.page { display: flex; flex-direction: column; min-height: 100vh; }
+.content { padding: 24px 28px; flex: 1; display: flex; flex-direction: column; gap: 20px; }
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.kpiCard { display: flex; flex-direction: column; gap: 8px; }
+.kpiHeader { display: flex; justify-content: space-between; align-items: flex-start; }
+.kpiLabel { font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.4; }
+.kpiValue { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: var(--text-primary); }
+.kpiChart { margin-top: 4px; }
+
+.middleGrid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 16px;
+}
+.chartCard { }
+.chartHeader { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
+.chartTitle { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.chartSub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.legend { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); margin-top: 8px; }
+.legendDot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.periodBtns { display: flex; gap: 4px; flex-shrink: 0; }
+
+.scoreCard { display: flex; flex-direction: column; gap: 12px; }
+.scoreGauge { display: flex; justify-content: center; align-items: center; position: relative; }
+.scoreItems { display: flex; flex-direction: column; gap: 8px; }
+.scoreItem { display: flex; align-items: center; gap: 8px; }
+.scoreItemLabel { font-size: 11px; color: var(--text-secondary); width: 90px; flex-shrink: 0; }
+.scoreBar { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.scoreBarFill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+.scoreItemVal { font-size: 12px; font-weight: 600; width: 28px; text-align: right; }
+
+.bottomGrid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+}
+.impayesCard { }
+.repartCard { }
+.sectionHeader { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+
+.pieRow { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+.pieLegend { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.pieLegendItem { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.pieLegendLabel { flex: 1; color: var(--text-secondary); }
+.pieLegendVal { color: var(--text-primary); font-weight: 600; }
+
+.repartStats { display: flex; gap: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+.repartStat { flex: 1; text-align: center; }
+.repartStatVal { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; color: var(--text-primary); }
+.repartStatLabel { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+@media (max-width: 1200px) {
+  .kpiGrid { grid-template-columns: repeat(2, 1fr); }
+  .middleGrid { grid-template-columns: 1fr; }
+  .bottomGrid { grid-template-columns: 1fr; }
+}
