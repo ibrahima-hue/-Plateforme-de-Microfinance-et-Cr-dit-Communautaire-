@@ -1,20 +1,13 @@
 import { useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import styles from './Login.module.css'
-
-const DEMO_ACCOUNTS = [
-  { role: 'Admin',              email: 'admin@kassa.sn',       color: '#8B7CF6' },
-  { role: 'Directeur',         email: 'directeur@kassa.sn',   color: '#34E5A0' },
-  { role: 'Agent de Crédit',   email: 'agent@kassa.sn',       color: '#3B82F6' },
-  { role: 'Caissier',          email: 'caissier@kassa.sn',    color: '#F59E0B' },
-  { role: 'Resp. Agence',      email: 'resp.agence@kassa.sn', color: '#EC4899' },
-  { role: 'Client',            email: 'client@kassa.sn',      color: '#10B981' },
-]
 
 export default function Login() {
   const { login } = useAuth()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
+  const [showPw, setShowPw]     = useState(false)
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
 
@@ -28,20 +21,12 @@ export default function Login() {
     setLoading(false)
   }
 
-  const fillDemo = demoEmail => {
-    setEmail(demoEmail)
-    setPassword('password123')
-    setError('')
-  }
-
   return (
     <div className={styles.page}>
-      {/* Background blobs */}
       <div className={styles.blob1} />
       <div className={styles.blob2} />
 
       <div className={styles.container}>
-        {/* Logo */}
         <div className={styles.logoSection}>
           <div className={styles.logoIcon}>K</div>
           <div>
@@ -60,51 +45,46 @@ export default function Login() {
               <input
                 type="email"
                 className="input"
-                placeholder="vous@kassa.sn"
+                placeholder="vous@institution.sn"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
+                autoComplete="email"
               />
             </div>
             <div className={styles.field}>
               <label>Mot de passe</label>
-              <input
-                type="password"
-                className="input"
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  className="input"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  style={{ paddingRight: 42 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(p => !p)}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}
+                >
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             {error && <div className={styles.error}>{error}</div>}
 
             <button type="submit" className={`btn btn-primary ${styles.submitBtn}`} disabled={loading}>
-              {loading ? <span className="spinner" style={{width:16,height:16,borderWidth:2}} /> : 'Se connecter'}
+              {loading ? <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : 'Se connecter'}
             </button>
           </form>
 
-          <div className={styles.divider}><span>Comptes de démonstration</span></div>
-
-          <div className={styles.demoGrid}>
-            {DEMO_ACCOUNTS.map(acc => (
-              <button
-                key={acc.email}
-                className={styles.demoBtn}
-                style={{'--role-color': acc.color}}
-                onClick={() => fillDemo(acc.email)}
-                title={acc.email}
-              >
-                <span className={styles.demoAvatar} style={{background: acc.color + '22', color: acc.color}}>
-                  {acc.role[0]}
-                </span>
-                <span className={styles.demoRole}>{acc.role}</span>
-              </button>
-            ))}
-          </div>
-
-          <p className={styles.hint}>Mot de passe demo : <code>password123</code></p>
+          <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', marginTop: 20 }}>
+            Contactez votre administrateur si vous avez oublié votre mot de passe.
+          </p>
         </div>
       </div>
     </div>

@@ -10,6 +10,8 @@ import Remboursements from './pages/Remboursements'
 import Solvabilite from './pages/Solvabilite'
 import Membres from './pages/Membres'
 import Rapports from './pages/Rapports'
+import Utilisateurs from './pages/Utilisateurs'
+import SetPassword from './pages/SetPassword'
 
 import DirecteurPortal from './portals/DirecteurPortal'
 import AgentPortal from './portals/AgentPortal'
@@ -28,6 +30,7 @@ function getAdminPage(page) {
     case 'remboursements': return <Remboursements />
     case 'solvabilite':    return <Solvabilite />
     case 'membres':        return <Membres />
+    case 'utilisateurs':   return <Utilisateurs />
     case 'rapports':       return <Rapports />
     default:               return <Dashboard />
   }
@@ -38,6 +41,7 @@ function AppShell() {
   const [page, setPage] = useState('dashboard')
 
   if (!user) return <Login />
+  if (user.mustChangePassword) return <SetPassword />
 
   const renderPortalContent = () => {
     switch (user.role) {

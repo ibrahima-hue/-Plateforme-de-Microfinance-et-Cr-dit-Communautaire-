@@ -1,16 +1,7 @@
 import { createContext, useContext, useState } from 'react'
+import { authenticate, updateUser } from '../store/usersStore'
 
 const AuthContext = createContext(null)
-
-// Comptes de démonstration par rôle
-const DEMO_USERS = [
-  { id: '1', nom: 'Diagne', prenom: 'Aliou',    email: 'admin@kassa.sn',         role: 'admin',              agence: 'Agence Principale Dakar', institution: 'Caisse Centrale Dakar' },
-  { id: '2', nom: 'Niang',  prenom: 'Moussa',   email: 'directeur@kassa.sn',     role: 'directeur',          agence: 'Agence Principale Dakar', institution: 'Caisse Centrale Dakar' },
-  { id: '3', nom: 'Diallo', prenom: 'Aissatou', email: 'agent@kassa.sn',         role: 'agent_credit',       agence: 'Agence Principale Dakar', institution: 'Caisse Centrale Dakar' },
-  { id: '4', nom: 'Seck',   prenom: 'Omar',     email: 'caissier@kassa.sn',      role: 'caissier',           agence: 'Agence Principale Dakar', institution: 'Caisse Centrale Dakar' },
-  { id: '5', nom: 'Fall',   prenom: 'Ibrahima', email: 'resp.agence@kassa.sn',   role: 'responsable_agence', agence: 'Agence Pikine',           institution: 'Coopérative Pikine'    },
-  { id: '6', nom: 'Diallo', prenom: 'Mamadou',  email: 'client@kassa.sn',        role: 'client',             agence: null,                      institution: 'Caisse Centrale Dakar' },
-]
 
 const ROLE_LABELS = {
   admin:              'Administrateur',
@@ -21,19 +12,38 @@ const ROLE_LABELS = {
   client:             'Client',
 }
 
+const SESSION_KEY = 'kassa_session'
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY)
+      return raw ? JSON.parse(raw) : null
+    } catch { return null }
+  })
 
   const login = (email, password) => {
-    const found = DEMO_USERS.find(u => u.email === email)
-    if (found && password === 'password123') {
-      setUser({ ...found, roleLabel: ROLE_LABELS[found.role] })
+    const found = authenticate(email, password)
+    if (found) {
+      const { password: _pw, ...safeUser } = found
+      const sessionUser = { ...safeUser, roleLabel: ROLE_LABELS[found.role] }
+      setUser(sessionUser)
+      try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser)) } catch {}
       return { success: true }
     }
     return { success: false, error: 'Email ou mot de passe incorrect' }
   }
 
-  const logout = () => setUser(null)
+  const logout = () => {
+    setUser(null)
+    try { sessionStorage.removeItem(SESSION_KEY) } catch {}
+  }
+
+  const changePassword = (newPassword) => {
+    if (!user) return
+    updateUser(user.id, { password: newPassword, mustChangePassword: false })
+    setUser(u => ({ ...u, mustChangePassword: false }))
+  }
 
   const can = (action, resource) => {
     if (!user) return false
@@ -43,7 +53,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, can, ROLE_LABELS }}>
+    <AuthContext.Provider value={{ user, login, logout, changePassword, can, ROLE_LABELS }}>
       {children}
     </AuthContext.Provider>
   )

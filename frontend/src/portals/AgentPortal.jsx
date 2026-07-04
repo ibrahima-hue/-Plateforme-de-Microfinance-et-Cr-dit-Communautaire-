@@ -4,24 +4,9 @@ import PageHeader from '../components/PageHeader'
 import styles from './Portal.module.css'
 import { useAuth } from '../context/AuthContext'
 import { getDemandes, addDemande } from '../store/demandesStore'
+import { getMembres } from '../store/membresStore'
 
 const fmtMoney = n => new Intl.NumberFormat('fr-FR').format(n)
-
-const MES_DEMANDES = [
-  { id:1, client:'Mamadou Diallo', montant:2500000, produit:'Crédit Équipement',  score:82, statut:'en_validation_n2', date:'2026-07-01' },
-  { id:2, client:'Aminata Ba',     montant:600000,  produit:'Fonds de Roulement', score:71, statut:'en_analyse',       date:'2026-07-02' },
-  { id:3, client:'Oumar Kane',     montant:3000000, produit:'Crédit Équipement',  score:79, statut:'en_validation_n3', date:'2026-06-28' },
-  { id:4, client:'Marième Fall',   montant:1200000, produit:'Fonds de Roulement', score:88, statut:'approuvee',        date:'2026-06-25' },
-  { id:5, client:'Rokhaya Diop',   montant:500000,  produit:'Fonds de Roulement', score:72, statut:'soumise',          date:'2026-07-03' },
-]
-
-const MES_CLIENTS = [
-  { id:1, nom:'Diallo', prenom:'Mamadou', telephone:'+221 77 123 4567', profession:'Commerçant',  revenu:350000, score:82, nbDemandes:2 },
-  { id:2, nom:'Ba',    prenom:'Aminata',  telephone:'+221 77 456 7890', profession:'Couturière',   revenu:150000, score:71, nbDemandes:1 },
-  { id:3, nom:'Kane',  prenom:'Oumar',    telephone:'+221 77 567 8901', profession:'Mécanicien',   revenu:280000, score:79, nbDemandes:1 },
-  { id:4, nom:'Fall',  prenom:'Marième',  telephone:'+221 77 678 9012', profession:'Enseignante',  revenu:320000, score:88, nbDemandes:2 },
-  { id:5, nom:'Diop',  prenom:'Rokhaya', telephone:'+221 77 890 1234', profession:'Vendeuse',     revenu:160000, score:72, nbDemandes:1 },
-]
 
 const STATUTS = {
   soumise:           { label:'Soumise',          cls:'badge-gray'   },
@@ -32,12 +17,14 @@ const STATUTS = {
   approuvee:         { label:'Approuvée',          cls:'badge-green'  },
   rejetee:           { label:'Rejetée',            cls:'badge-red'   },
   annulee:           { label:'Annulée',            cls:'badge-gray'  },
+  decaissee:         { label:'Décaissée',          cls:'badge-blue'  },
 }
 
 export default function AgentPortal({ page, onNavigate = () => {} }) {
   const { user } = useAuth()
   const agentName = `${user.prenom} ${user.nom}`
   const [demandes, setDemandes] = useState(() => getDemandes().filter(d => !d.agent || d.agent === agentName))
+  const [clients] = useState(() => getMembres())
   const [showForm, setShowForm] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -47,9 +34,9 @@ export default function AgentPortal({ page, onNavigate = () => {} }) {
     setDemandes(next.filter(dem => !dem.agent || dem.agent === agentName))
   }
 
-  if (page === 'clients')    return <ClientsView clients={MES_CLIENTS} />
-  if (page === 'solvabilite') return <SolvabiliteAgentView clients={MES_CLIENTS} />
-  if (page === 'nouvelle_demande') return <NouvelleDemandePage onClose={() => onNavigate('dashboard')} onAdd={d => { handleAdd(d); onNavigate('dashboard') }} clients={MES_CLIENTS} />
+  if (page === 'clients')    return <ClientsView clients={clients} />
+  if (page === 'solvabilite') return <SolvabiliteAgentView clients={clients} />
+  if (page === 'nouvelle_demande') return <NouvelleDemandePage onClose={() => onNavigate('dashboard')} onAdd={d => { handleAdd(d); onNavigate('dashboard') }} clients={clients} />
 
   // Dashboard agent
   const stats = {
@@ -120,7 +107,7 @@ export default function AgentPortal({ page, onNavigate = () => {} }) {
           </div>
         </div>
       </div>
-      {showForm && <NouvelleDemandePage onClose={() => setShowForm(false)} onAdd={d => { handleAdd(d); setShowForm(false) }} clients={MES_CLIENTS} />}
+      {showForm && <NouvelleDemandePage onClose={() => setShowForm(false)} onAdd={d => { handleAdd(d); setShowForm(false) }} clients={clients} />}
     </div>
   )
 }
@@ -146,9 +133,9 @@ function ClientsView({ clients }) {
                     <td style={{fontWeight:600,color:'var(--text-primary)'}}>{c.prenom} {c.nom}</td>
                     <td style={{fontSize:12}}>{c.telephone}</td>
                     <td>{c.profession}</td>
-                    <td style={{color:'var(--text-primary)'}}>{fmtMoney(c.revenu)} FCFA</td>
+                    <td style={{color:'var(--text-primary)'}}>{fmtMoney(c.revenu_mensuel ?? c.revenu ?? 0)} FCFA</td>
                     <td style={{color:c.score>=70?'var(--green)':c.score>=50?'var(--amber)':'var(--red)',fontWeight:600}}>{c.score}</td>
-                    <td><span className="badge badge-purple">{c.nbDemandes}</span></td>
+                    <td><span className="badge badge-purple">{c.nb_credits ?? c.nbDemandes ?? 0}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -168,7 +155,7 @@ function SolvabiliteAgentView({ clients }) {
 
   const analyse = () => {
     if (!selected) return
-    const ratio = montant / duree / selected.revenu
+    const ratio = montant / duree / (selected.revenu_mensuel ?? selected.revenu ?? 1)
     const scoreCapacite = ratio <= 0.3 ? 30 : ratio <= 0.4 ? 22 : ratio <= 0.5 ? 15 : 5
     const scoreHistorique = selected.score >= 80 ? 25 : selected.score >= 65 ? 18 : 10
     const total = scoreCapacite + scoreHistorique + 12 + 15 + 7

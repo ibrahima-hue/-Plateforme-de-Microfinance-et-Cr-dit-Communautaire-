@@ -18,6 +18,7 @@ const NAV_BY_ROLE = {
     ]},
     { section: 'RÉSEAU', items: [
       { id: 'membres',         label: 'Membres & coopératives', icon: Users },
+      { id: 'utilisateurs',    label: 'Utilisateurs',           icon: User },
       { id: 'rapports',        label: 'Rapports',               icon: FileBarChart },
     ]},
   ],
@@ -34,6 +35,7 @@ const NAV_BY_ROLE = {
     { section: 'AGENCE', items: [
       { id: 'dashboard',       label: 'Tableau de bord',        icon: LayoutDashboard },
       { id: 'validation',      label: 'Validation N1',          icon: CheckSquare },
+      { id: 'decaissement',    label: 'Décaissement',           icon: CreditCard },
       { id: 'credits',         label: 'Dossiers crédit',        icon: FileText },
       { id: 'membres',         label: 'Clients agence',         icon: Users },
     ]},

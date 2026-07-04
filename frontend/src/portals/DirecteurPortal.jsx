@@ -45,7 +45,7 @@ export default function DirecteurPortal({ page }) {
   const [validations, setValidations] = useState(() =>
     getDemandes()
       .filter(d => d.statut === 'en_validation_n2' || d.statut === 'en_validation_n3')
-      .map(d => ({ ...d, niveau: d.statut === 'en_validation_n2' ? 2 : 3 }))
+      .map(d => ({ ...d, niveau: d.statut === 'en_validation_n2' ? 2 : 3, _passedN2: d.statut === 'en_validation_n3' }))
   )
 
   const handleDecision = (id, dec) => {
@@ -161,10 +161,9 @@ export default function DirecteurPortal({ page }) {
                     <span className="badge badge-green">Approuvé ✓</span>
                   ) : v.statut === 'rejetee' ? (
                     <span className="badge badge-red">Rejeté</span>
-                  ) : v._passedN2 ? (
-                    <span className="badge badge-purple">→ N3 en attente</span>
                   ) : (
                     <>
+                      {v._passedN2 && <span className="badge badge-purple" style={{marginRight:4}}>N3</span>}
                       <button className="btn btn-sm" style={{background:'var(--green-dim)',color:'var(--green)',border:'1px solid rgba(52,229,160,0.2)'}} onClick={() => handleDecision(v.id,'approuve')}><CheckCircle size={12}/></button>
                       <button className="btn btn-danger btn-sm" onClick={() => handleDecision(v.id,'rejete')}><XCircle size={12}/></button>
                     </>
@@ -227,10 +226,9 @@ function ValidationView({ validations, onDecision }) {
                         <span className="badge badge-green">Approuvé ✓</span>
                       ) : v.statut === 'rejetee' ? (
                         <span className="badge badge-red">Rejeté</span>
-                      ) : v._passedN2 ? (
-                        <span className="badge badge-purple">→ Passage N3</span>
                       ) : (
-                        <div style={{display:'flex',gap:6}}>
+                        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                          {v._passedN2 && <span className="badge badge-purple">→ N3</span>}
                           <button className="btn btn-sm btn-primary" onClick={() => onDecision(v.id,'approuve')}>
                             {v.niveau === 2 && v.montant >= SEUIL_N3 ? 'Approuver → N3' : 'Approuver'}
                           </button>

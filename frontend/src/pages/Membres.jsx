@@ -1,22 +1,11 @@
 import { useState } from 'react'
-import { Plus, Users, Building2, Search, User } from 'lucide-react'
+import { Plus, Users, Building2, Search, User, Copy, Trash2 } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import styles from './Page.module.css'
+import { getMembres, addMembre, deleteMembre } from '../store/membresStore'
+import { createClientAccount, deleteUser, getUsers } from '../store/usersStore'
 
 const fmtMoney = n => new Intl.NumberFormat('fr-FR').format(n) + ' FCFA'
-
-const MEMBRES = [
-  { id:1, nom:'Diallo', prenom:'Mamadou', cin:'1199012345', telephone:'+221 77 123 4567', profession:'Commerçant', revenu_mensuel:350000, cooperative:'Caisse Centrale Dakar', statut:'actif', score:82, nb_credits:2, encours:1850000 },
-  { id:2, nom:'Sow', prenom:'Fatou', cin:'2198098765', telephone:'+221 77 234 5678', profession:'Artisane', revenu_mensuel:180000, cooperative:'Caisse Centrale Dakar', statut:'actif', score:74, nb_credits:1, encours:0 },
-  { id:3, nom:'Ndiaye', prenom:'Ibrahima', cin:'1195076543', telephone:'+221 77 345 6789', profession:'Agriculteur', revenu_mensuel:220000, cooperative:'Caisse Centrale Dakar', statut:'suspendu', score:68, nb_credits:1, encours:1500000 },
-  { id:4, nom:'Ba', prenom:'Aminata', cin:'2200054321', telephone:'+221 77 456 7890', profession:'Couturière', revenu_mensuel:150000, cooperative:'Coopérative Pikine', statut:'actif', score:71, nb_credits:1, encours:420000 },
-  { id:5, nom:'Kane', prenom:'Oumar', cin:'1197043210', telephone:'+221 77 567 8901', profession:'Mécanicien', revenu_mensuel:280000, cooperative:'Coopérative Pikine', statut:'actif', score:79, nb_credits:1, encours:2680000 },
-  { id:6, nom:'Fall', prenom:'Marième', cin:'2201032109', telephone:'+221 77 678 9012', profession:'Enseignante', revenu_mensuel:320000, cooperative:'Mutuelle Thiès', statut:'actif', score:88, nb_credits:2, encours:780000 },
-  { id:7, nom:'Mbaye', prenom:'Cheikh', cin:'1196021098', telephone:'+221 77 789 0123', profession:'Pêcheur', revenu_mensuel:200000, cooperative:'Mutuelle Thiès', statut:'actif', score:65, nb_credits:0, encours:0 },
-  { id:8, nom:'Diop', prenom:'Rokhaya', cin:'2199010987', telephone:'+221 77 890 1234', profession:'Vendeuse', revenu_mensuel:160000, cooperative:'Caisse Ziguinchor', statut:'actif', score:72, nb_credits:1, encours:400000 },
-  { id:9, nom:'Sarr', prenom:'Modou', cin:'1200009876', telephone:'+221 77 901 2345', profession:'Chauffeur', revenu_mensuel:240000, cooperative:'Caisse Centrale Dakar', statut:'actif', score:77, nb_credits:1, encours:1650000 },
-  { id:10, nom:'Cissé', prenom:'Binta', cin:'2202098765', telephone:'+221 77 012 3456', profession:'Infirmière', revenu_mensuel:380000, cooperative:'Coopérative Pikine', statut:'actif', score:91, nb_credits:1, encours:3920000 },
-]
 
 const COOPS = ['Toutes', 'Caisse Centrale Dakar', 'Coopérative Pikine', 'Mutuelle Thiès', 'Caisse Ziguinchor']
 
@@ -24,11 +13,21 @@ const STATUT_BADGE = { actif: 'badge-green', inactif: 'badge-gray', suspendu: 'b
 const STATUT_LABEL = { actif: 'Actif', inactif: 'Inactif', suspendu: 'Suspendu' }
 
 export default function Membres() {
-  const [membres, setMembres] = useState(MEMBRES)
+  const [membres, setMembres] = useState(() => getMembres())
   const [search, setSearch] = useState('')
   const [filtreComp, setFiltreComp] = useState('Toutes')
   const [showForm, setShowForm] = useState(false)
   const [selected, setSelected] = useState(null)
+  const [newAccount, setNewAccount] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+
+  const handleDelete = (m) => {
+    setMembres(deleteMembre(m.id))
+    const users = getUsers()
+    const linked = users.find(u => u.nom === m.nom && u.prenom === m.prenom && u.role === 'client')
+    if (linked) deleteUser(linked.id)
+    setDeleteTarget(null)
+  }
 
   const filtered = membres.filter(m => {
     const matchSearch = !search || `${m.nom} ${m.prenom} ${m.cin}`.toLowerCase().includes(search.toLowerCase())
@@ -87,12 +86,12 @@ export default function Membres() {
             <table>
               <thead><tr>
                 <th>Membre</th><th>CIN</th><th>Téléphone</th><th>Profession</th>
-                <th>Revenu</th><th>Coopérative</th><th>Score</th><th>Encours</th><th>Statut</th>
+                <th>Revenu</th><th>Coopérative</th><th>Score</th><th>Encours</th><th>Statut</th><th></th>
               </tr></thead>
               <tbody>
                 {filtered.map(m => (
-                  <tr key={m.id} style={{cursor:'pointer'}} onClick={() => setSelected(m)}>
-                    <td style={{color:'var(--text-primary)',fontWeight:500}}>{m.prenom} {m.nom}</td>
+                  <tr key={m.id}>
+                    <td style={{color:'var(--text-primary)',fontWeight:500,cursor:'pointer'}} onClick={() => setSelected(m)}>{m.prenom} {m.nom}</td>
                     <td style={{fontFamily:'monospace',fontSize:12}}>{m.cin}</td>
                     <td>{m.telephone}</td>
                     <td>{m.profession}</td>
@@ -101,6 +100,16 @@ export default function Membres() {
                     <td style={{color: m.score>=70?'var(--green)':m.score>=50?'var(--amber)':'var(--red)',fontWeight:600}}>{m.score}</td>
                     <td style={{color:'var(--text-primary)',fontWeight: m.encours>0 ? 500 : 400}}>{m.encours > 0 ? fmtMoney(m.encours) : '—'}</td>
                     <td><span className={`badge ${STATUT_BADGE[m.statut]}`}>{STATUT_LABEL[m.statut]}</span></td>
+                    <td>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{color:'var(--red)'}}
+                        title="Supprimer ce membre"
+                        onClick={e => { e.stopPropagation(); setDeleteTarget(m) }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -109,8 +118,37 @@ export default function Membres() {
         </div>
       </div>
 
-      {showForm && <NouveauMembreModal onClose={() => setShowForm(false)} onAdd={m => { setMembres(p => [m,...p]); setShowForm(false) }} />}
+      {showForm && <NouveauMembreModal onClose={() => setShowForm(false)} onAdd={m => {
+        setMembres(addMembre(m))
+        const account = createClientAccount(m)
+        setNewAccount({ nom: `${m.prenom} ${m.nom}`, ...account })
+        setShowForm(false)
+      }} />}
       {selected && <MembreDetailModal membre={selected} onClose={() => setSelected(null)} />}
+      {newAccount && <AccountCreatedModal account={newAccount} onClose={() => setNewAccount(null)} />}
+      {deleteTarget && (
+        <div className="modal-overlay">
+          <div className="modal" style={{maxWidth:420}}>
+            <div className="modal-header">
+              <h3 style={{fontFamily:'Space Grotesk',fontSize:16}}>Confirmer la suppression</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setDeleteTarget(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{color:'var(--text-secondary)',fontSize:14,lineHeight:1.6}}>
+                Supprimer le membre <strong style={{color:'var(--text-primary)'}}>{deleteTarget.prenom} {deleteTarget.nom}</strong> ?
+                <br />
+                <span style={{fontSize:12,color:'var(--red)'}}>
+                  Son compte de connexion sera également supprimé. Cette action est irréversible.
+                </span>
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setDeleteTarget(null)}>Annuler</button>
+              <button className="btn btn-danger" onClick={() => handleDelete(deleteTarget)}>Supprimer</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -206,6 +244,57 @@ function MembreDetailModal({ membre: m, onClose }) {
         </div>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Fermer</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AccountCreatedModal({ account, onClose }) {
+  const [copied, setCopied] = useState(null)
+
+  const copy = (text, key) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(key)
+      setTimeout(() => setCopied(null), 2000)
+    })
+  }
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal" style={{ maxWidth: 460 }}>
+        <div className="modal-header">
+          <h3 style={{ fontFamily: 'Space Grotesk', fontSize: 16, color: 'var(--green)' }}>
+            ✓ Compte créé pour {account.nom}
+          </h3>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+            Un compte client a été créé automatiquement. Communiquez ces identifiants au membre — il devra configurer son propre mot de passe à la première connexion.
+          </p>
+
+          {[
+            { label: 'Adresse email', value: account.email, key: 'email' },
+            { label: 'Mot de passe temporaire', value: account.tempPassword, key: 'pw' },
+          ].map(({ label, value, key }) => (
+            <div key={key} style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{label}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-card2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
+                <code style={{ flex: 1, fontSize: 14, color: 'var(--green)', fontFamily: 'monospace' }}>{value}</code>
+                <button className="btn btn-ghost btn-sm" onClick={() => copy(value, key)} title="Copier" style={{ flexShrink: 0 }}>
+                  {copied === key ? '✓' : <Copy size={13} />}
+                </button>
+              </div>
+            </div>
+          ))}
+
+          <div style={{ marginTop: 14, padding: '10px 12px', background: '#F59E0B18', borderRadius: 8, border: '1px solid #F59E0B30', fontSize: 12, color: '#F59E0B' }}>
+            Le client devra changer ce mot de passe temporaire lors de sa première connexion.
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-primary" onClick={onClose}>Compris</button>
         </div>
       </div>
     </div>
