@@ -1,7 +1,9 @@
 import { createContext, useContext, useState } from 'react'
-import { authenticate, updateUser } from '../store/usersStore'
+import { authenticate as authenticateLocal } from '../store/usersStore'
 
-const AuthContext = createContext(null)
+const AuthContext  = createContext(null)
+const SESSION_KEY  = 'kassa_session'
+const BASE         = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 const ROLE_LABELS = {
   admin:              'Administrateur',
@@ -12,37 +14,69 @@ const ROLE_LABELS = {
   client:             'Client',
 }
 
-const SESSION_KEY = 'kassa_session'
+function loadSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+function saveSession(user) {
+  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(user)) } catch {}
+}
+
+function clearSession() {
+  try { sessionStorage.removeItem(SESSION_KEY) } catch {}
+}
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    try {
-      const raw = sessionStorage.getItem(SESSION_KEY)
-      return raw ? JSON.parse(raw) : null
-    } catch { return null }
-  })
+  const [user, setUser] = useState(loadSession)
 
-  const login = (email, password) => {
-    const found = authenticate(email, password)
-    if (found) {
-      const { password: _pw, ...safeUser } = found
-      const sessionUser = { ...safeUser, roleLabel: ROLE_LABELS[found.role] }
+  const login = async (email, password) => {
+    try {
+      const res = await fetch(`${BASE}/auth/login`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email, password }),
+      })
+      const data = await res.json()
+      if (!res.ok) return { success: false, error: data.error || 'Email ou mot de passe incorrect' }
+
+      const sessionUser = { ...data.user, token: data.token, roleLabel: ROLE_LABELS[data.user.role] }
       setUser(sessionUser)
-      try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser)) } catch {}
+      saveSession(sessionUser)
       return { success: true }
+    } catch {
+      // Fallback localStorage si le backend est inaccessible
+      const found = authenticateLocal(email, password)
+      if (found) {
+        const { password: _pw, ...safe } = found
+        const sessionUser = { ...safe, roleLabel: ROLE_LABELS[found.role] }
+        setUser(sessionUser)
+        saveSession(sessionUser)
+        return { success: true }
+      }
+      return { success: false, error: 'Email ou mot de passe incorrect' }
     }
-    return { success: false, error: 'Email ou mot de passe incorrect' }
   }
 
   const logout = () => {
     setUser(null)
-    try { sessionStorage.removeItem(SESSION_KEY) } catch {}
+    clearSession()
   }
 
-  const changePassword = (newPassword) => {
+  const changePassword = async (newPassword) => {
     if (!user) return
-    updateUser(user.id, { password: newPassword, mustChangePassword: false })
-    setUser(u => ({ ...u, mustChangePassword: false }))
+    try {
+      await fetch(`${BASE}/auth/change-password`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.token}` },
+        body:    JSON.stringify({ newPassword }),
+      })
+    } catch { /* offline */ }
+    const updated = { ...user, mustChangePassword: false }
+    setUser(updated)
+    saveSession(updated)
   }
 
   const can = (action, resource) => {
@@ -58,6 +92,7 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   )
 }
+
 
 const PERMISSIONS = {
   directeur:          ['dashboard:read','credits:read','credits:approve','clients:read','remboursements:read','rapports:read','alertes:read'],

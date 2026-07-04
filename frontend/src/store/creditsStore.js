@@ -1,8 +1,66 @@
+import { api } from '../api/client'
 import { getDemandes } from './demandesStore'
 
 const PAYMENTS_KEY = 'kassa_payments'
 const PAYMENTS_VER = 'kassa_payments_v'
 const VERSION      = '1'
+
+// ─── API calls (avec fallback localStorage) ─────────────────
+
+export async function fetchActiveCredits() {
+  try {
+    return await api.get('/credits')
+  } catch {
+    return getActiveCredits()
+  }
+}
+
+export async function fetchEcheancier(creditId) {
+  try {
+    return await api.get(`/credits/${creditId}/echeancier`)
+  } catch {
+    const credits = getActiveCredits()
+    const credit  = credits.find(c => c.id === creditId)
+    return credit ? getEcheancier(credit) : []
+  }
+}
+
+export async function fetchEcheancesAujourdhui() {
+  try {
+    return await api.get('/paiements/echeances-aujourd-hui')
+  } catch {
+    return getEcheancesAujourdhui()
+  }
+}
+
+export async function fetchImpayes() {
+  try {
+    return await api.get('/paiements/impayes')
+  } catch {
+    return getImpayes()
+  }
+}
+
+export async function fetchPaiements() {
+  try {
+    return await api.get('/paiements')
+  } catch {
+    return getPayments()
+  }
+}
+
+export async function enregistrerPaiement(data) {
+  try {
+    const result = await api.post('/paiements', data)
+    // Aussi sauvegarder en localStorage comme cache
+    recordPayment(data)
+    return result
+  } catch {
+    return recordPayment(data)
+  }
+}
+
+// ─── Fallback localStorage ───────────────────────────────────
 
 export function getPayments() {
   try {
@@ -30,15 +88,15 @@ export function getActiveCredits() {
   return getDemandes()
     .filter(d => d.statut === 'decaissee')
     .map(d => ({
-      id:              d.id,
-      ref:             creditRef(d),
-      client:          d.client,
-      produit:         d.produit || 'Crédit',
-      montant:         d.montant,
-      duree:           d.duree || 12,
-      mensualite:      Math.round(d.montant / (d.duree || 12)),
-      date_debut:      d.date_decaissement || d.date || new Date().toISOString().slice(0, 10),
-      telephone:       d.telephone || '',
+      id:         d.id,
+      ref:        creditRef(d),
+      client:     d.client,
+      produit:    d.produit || 'Crédit',
+      montant:    d.montant,
+      duree:      d.duree || 12,
+      mensualite: Math.round(d.montant / (d.duree || 12)),
+      date_debut: d.date_decaissement || d.date || new Date().toISOString().slice(0, 10),
+      telephone:  d.telephone || '',
     }))
 }
 
@@ -50,19 +108,19 @@ export function getEcheancier(credit) {
   return Array.from({ length: credit.duree }, (_, i) => {
     const d = new Date(start)
     d.setMonth(d.getMonth() + i + 1)
-    const dateStr    = d.toISOString().slice(0, 10)
-    const echId      = `${credit.ref}-${i + 1}`
-    const paid       = payments.find(p => p.echeance_id === echId)
+    const dateStr = d.toISOString().slice(0, 10)
+    const echId   = `${credit.ref}-${i + 1}`
+    const paid    = payments.find(p => p.echeance_id === echId)
 
     return {
-      id:           echId,
-      num:          i + 1,
-      credit_ref:   credit.ref,
-      client:       credit.client,
-      montant:      credit.mensualite,
+      id:            echId,
+      num:           i + 1,
+      credit_ref:    credit.ref,
+      client:        credit.client,
+      montant:       credit.mensualite,
       date_echeance: dateStr,
-      statut:       paid ? 'paye' : dateStr < today ? 'en_retard' : 'a_payer',
-      payment:      paid || null,
+      statut:        paid ? 'paye' : dateStr < today ? 'en_retard' : 'a_payer',
+      payment:       paid || null,
     }
   })
 }
@@ -89,15 +147,15 @@ export function getImpayes() {
 
 export function recordPayment({ echeance_id, credit_ref, client, montant, mode, ref_transaction }) {
   const payment = {
-    id:           Date.now().toString(),
+    id:              Date.now().toString(),
     echeance_id,
     credit_ref,
     client,
     montant,
     mode,
     ref_transaction,
-    date:         new Date().toISOString().slice(0, 10),
-    heure:        new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+    date:            new Date().toISOString().slice(0, 10),
+    heure:           new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
   }
   const list = [...getPayments(), payment]
   savePayments(list)
